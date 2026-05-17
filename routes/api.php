@@ -1,0 +1,44 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MenuController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\ExportController;
+
+Route::post('/login', [AuthController::class, 'login']);
+
+// Export (di luar auth:sanctum, auth manual via token)
+Route::get('/export/daily/pdf', [ExportController::class, 'dailyPdf']);
+Route::get('/export/daily/csv', [ExportController::class, 'dailyCsv']);
+Route::get('/export/monthly/pdf', [ExportController::class, 'monthlyPdf']);
+Route::get('/export/monthly/csv', [ExportController::class, 'monthlyCsv']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+
+    Route::get('/menus', [MenuController::class, 'index']);
+    Route::get('/menus/all', [MenuController::class, 'all']);
+    Route::post('/menus', [MenuController::class, 'store']);
+    Route::put('/menus/{menu}', [MenuController::class, 'update']);
+    Route::delete('/menus/{menu}', [MenuController::class, 'destroy']);
+    Route::get('/categories', [MenuController::class, 'categories']);
+
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::post('/orders/{order}/void-request', [OrderController::class, 'requestVoid']);
+
+    Route::get('/void-requests', [OrderController::class, 'voidRequests']);
+    Route::post('/orders/{order}/void-approve', [OrderController::class, 'approveVoid']);
+    Route::post('/orders/{order}/void-reject', [OrderController::class, 'rejectVoid']);
+
+    Route::get('/reports/daily', [ReportController::class, 'daily']);
+    Route::get('/reports/weekly', [ReportController::class, 'weekly']);
+    Route::get('/reports/monthly', [ReportController::class, 'monthly']);
+
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
+});
