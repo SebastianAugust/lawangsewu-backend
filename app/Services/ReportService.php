@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Branch;
 use App\Models\Menu;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -11,12 +12,20 @@ class ReportService
 {
     // Single source of truth — every report shape (daily, weekly, monthly)
     // is built from this. Pure-SQL aggregation: no per-row PHP work, no N+1.
-    public function aggregate(string $from, string $to): array
+    // When $branchId is given, every query is scoped to that one cabang;
+    // null means all cabang combined (owner "Semua Cabang" view).
+    public function aggregate(string $from, string $to, ?int $branchId = null): array
     {
         $start = $from . ' 00:00:00';
         $end   = $to   . ' 23:59:59';
 
+        $branchFilter = fn ($q) => $q->when(
+            $branchId,
+            fn ($qq) => $qq->where('orders.branch_id', $branchId),
+        );
+
         $orderStats = Order::whereBetween('created_at', [$start, $end])
+            ->tap($branchFilter)
             ->select('status',
                 DB::raw('COUNT(*) as cnt'),
                 DB::raw('COALESCE(SUM(total_price), 0) as total'))
@@ -30,6 +39,7 @@ class ReportService
 
         $paymentBreakdown = Order::whereBetween('created_at', [$start, $end])
             ->where('status', 'completed')
+            ->tap($branchFilter)
             ->select('payment_method',
                 DB::raw('COUNT(*) as count'),
                 DB::raw('COALESCE(SUM(total_price), 0) as total'))
@@ -39,6 +49,7 @@ class ReportService
 
         $hourlySales = Order::whereBetween('created_at', [$start, $end])
             ->where('status', 'completed')
+            ->tap($branchFilter)
             ->select(
                 DB::raw('HOUR(created_at) as hour'),
                 DB::raw('COUNT(*) as orders'),
@@ -54,6 +65,7 @@ class ReportService
 
         $dailyRows = Order::whereBetween('created_at', [$start, $end])
             ->where('status', 'completed')
+            ->tap($branchFilter)
             ->select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('COUNT(*) as orders'),
@@ -91,6 +103,7 @@ class ReportService
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereBetween('orders.created_at', [$start, $end])
             ->where('orders.status', 'completed')
+            ->tap($branchFilter)
             ->select('order_items.menu_id',
                 DB::raw('SUM(order_items.quantity) as total_sold'),
                 DB::raw('COALESCE(SUM(order_items.subtotal), 0) as total_revenue'))
@@ -105,6 +118,7 @@ class ReportService
             ->join('categories', 'menus.category_id', '=', 'categories.id')
             ->whereBetween('orders.created_at', [$start, $end])
             ->where('orders.status', 'completed')
+            ->tap($branchFilter)
             ->select('categories.name as category',
                 DB::raw('SUM(order_items.quantity) as total_sold'),
                 DB::raw('COALESCE(SUM(order_items.subtotal), 0) as total_revenue'))
@@ -116,6 +130,7 @@ class ReportService
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereBetween('orders.created_at', [$start, $end])
             ->where('orders.status', 'completed')
+            ->tap($branchFilter)
             ->select('order_items.menu_id', 'order_items.variant_name',
                 DB::raw('SUM(order_items.quantity) as qty'),
                 DB::raw('COALESCE(SUM(order_items.subtotal), 0) as revenue'))
@@ -159,6 +174,7 @@ class ReportService
         return [
             'period_start'      => $from,
             'period_end'        => $to,
+            'branch_id'         => $branchId,
             'total_revenue'     => $totalRevenue,
             'total_orders'      => $totalOrders,
             'total_voided'      => $totalVoided,
@@ -175,10 +191,11 @@ class ReportService
         ];
     }
 
-    public function periodTotals(string $from, string $to): array
+    public function periodTotals(string $from, string $to, ?int $branchId = null): array
     {
         $row = Order::whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->where('status', 'completed')
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->selectRaw('COUNT(*) as cnt, COALESCE(SUM(total_price), 0) as total')
             ->first();
 
@@ -186,5 +203,33 @@ class ReportService
             'orders'  => (int) ($row?->cnt   ?? 0),
             'revenue' => (int) ($row?->total ?? 0),
         ];
+    }
+
+    /**
+     * Per-cabang totals for completed orders in the range — one row per
+     * branch (including branches with zero orders), used by the owner's
+     * "Semua Cabang" comparison cards on the dashboard.
+     */
+    public function branchBreakdown(string $from, string $to): array
+    {
+        $start = $from . ' 00:00:00';
+        $end   = $to   . ' 23:59:59';
+
+        $totals = Order::whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->whereNotNull('branch_id')
+            ->select('branch_id',
+                DB::raw('COUNT(*) as orders'),
+                DB::raw('COALESCE(SUM(total_price), 0) as revenue'))
+            ->groupBy('branch_id')
+            ->get()
+            ->keyBy('branch_id');
+
+        return Branch::orderBy('id')->get()->map(fn ($b) => [
+            'branch_id'   => $b->id,
+            'branch_name' => $b->name,
+            'revenue'     => (int) ($totals[$b->id]->revenue ?? 0),
+            'orders'      => (int) ($totals[$b->id]->orders  ?? 0),
+        ])->all();
     }
 }

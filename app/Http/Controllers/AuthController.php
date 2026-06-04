@@ -27,6 +27,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $user->load('branch');
+
         AuditLog::record($user->id, 'login', 'User', $user->id, [
             'email' => $user->email,
             'role' => $user->role,
@@ -35,6 +37,8 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'token' => $token,
+            'branch_id' => $user->branch_id,
+            'branch_name' => $user->branch?->name,
         ]);
     }
 
@@ -49,6 +53,6 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json($request->user()->load('branch'));
     }
 }

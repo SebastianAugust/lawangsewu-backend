@@ -6,15 +6,9 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\ExportController;
+use App\Http\Controllers\BranchController;
 
 Route::post('/login', [AuthController::class, 'login']);
-
-// Export (di luar auth:sanctum, auth manual via token)
-Route::get('/export/daily/pdf', [ExportController::class, 'dailyPdf']);
-Route::get('/export/daily/csv', [ExportController::class, 'dailyCsv']);
-Route::get('/export/monthly/pdf', [ExportController::class, 'monthlyPdf']);
-Route::get('/export/monthly/csv', [ExportController::class, 'monthlyCsv']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -29,6 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders/cleanup-test', [OrderController::class, 'cleanupTest']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/void-request', [OrderController::class, 'requestVoid']);
 
@@ -41,4 +36,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/monthly', [ReportController::class, 'monthly']);
 
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
+
+    Route::get('/branches', [BranchController::class, 'index']);
+    Route::post('/branches', [BranchController::class, 'store']);
+    Route::put('/branches/{branch}', [BranchController::class, 'update']);
+    Route::delete('/branches/{branch}', [BranchController::class, 'destroy']);
 });

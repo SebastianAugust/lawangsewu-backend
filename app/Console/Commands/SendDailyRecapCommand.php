@@ -51,7 +51,7 @@ class SendDailyRecapCommand extends Command
             ->translatedFormat('l, d F Y');
 
         $lines = [];
-        $lines[] = '*LAWANG SEWU — REKAP HARIAN*';
+        $lines[] = '*LAWANG SEWU - REKAP HARIAN*';
         $lines[] = "_{$dateLabel}_";
         $lines[] = '';
 
@@ -87,7 +87,7 @@ class SendDailyRecapCommand extends Command
             $lines[] = '*Top Menu*';
             foreach ($topMenus as $i => $m) {
                 $name = $m->menu?->name ?? 'Tanpa Nama';
-                $lines[] = ($i + 1) . '. ' . $name . ' — ' . $m->total_sold . ' pcs (' . $rp($m->total_revenue) . ')';
+                $lines[] = ($i + 1) . '. ' . $name . ' - ' . $m->total_sold . ' pcs (' . $rp($m->total_revenue) . ')';
             }
             $lines[] = '';
         }

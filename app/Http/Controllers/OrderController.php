@@ -19,6 +19,7 @@ class OrderController extends Controller {
             'items.*.subtotal' => 'required|integer|min:0',
             'payment_method' => 'required|in:cash,qris,transfer',
             'cash_received' => 'required_if:payment_method,cash|nullable|integer|min:0',
+            'is_test' => 'nullable|boolean',
         ] );
 
         $totalPrice = collect( $request->items )->sum( 'subtotal' );
@@ -30,11 +31,16 @@ class OrderController extends Controller {
 
         $order = Order::create( [
             'user_id' => $request->user()->id,
+            // Branch is taken from the logged-in user, never from client input,
+            // so a kasir's orders always belong to their own cabang. Owner
+            // (branch_id null) creating an order leaves it unassigned.
+            'branch_id' => $request->user()->branch_id,
             'customer_name' => $request->customer_name,
             'total_price' => $totalPrice,
             'payment_method' => $request->payment_method,
             'cash_received' => $request->cash_received,
             'change_amount' => $changeAmount,
+            'is_test' => (bool) $request->input('is_test', false),
         ] );
 
         foreach ( $request->items as $item ) {
@@ -61,7 +67,7 @@ class OrderController extends Controller {
     }
 
     public function index( Request $request ) {
-        $query = Order::with( 'items.menu', 'user' )->orderBy( 'created_at', 'desc' );
+        $query = Order::with( 'items.menu', 'user', 'branch' )->orderBy( 'created_at', 'desc' );
 
         if ( $request->has( 'date' ) ) {
             $query->whereDate( 'created_at', $request->date );
@@ -69,6 +75,15 @@ class OrderController extends Controller {
 
         if ( $request->has( 'status' ) ) {
             $query->where( 'status', $request->status );
+        }
+
+        // A kasir only ever sees their own cabang. An owner sees everything,
+        // but may optionally narrow to one cabang via ?branch_id=.
+        $user = $request->user();
+        if ( $user->role === 'kasir' && $user->branch_id ) {
+            $query->where( 'branch_id', $user->branch_id );
+        } elseif ( $user->role === 'owner' && $request->filled( 'branch_id' ) ) {
+            $query->where( 'branch_id', $request->branch_id );
         }
 
         return response()->json( $query->get() );
@@ -145,5 +160,27 @@ class OrderController extends Controller {
         ->get();
 
         return response()->json( $orders );
+    }
+
+    /**
+     * Delete all test orders created by the current user. Used by the
+     * guided tour to clean up dummy orders the user made during the
+     * tutorial so they don't pollute real history.
+     */
+    public function cleanupTest( Request $request ) {
+        $userId = $request->user()->id;
+
+        $orderIds = Order::where( 'user_id', $userId )
+            ->where( 'is_test', true )
+            ->pluck( 'id' );
+
+        if ( $orderIds->isEmpty() ) {
+            return response()->json( [ 'deleted' => 0 ] );
+        }
+
+        OrderItem::whereIn( 'order_id', $orderIds )->delete();
+        $deleted = Order::whereIn( 'id', $orderIds )->delete();
+
+        return response()->json( [ 'deleted' => $deleted ] );
     }
 }

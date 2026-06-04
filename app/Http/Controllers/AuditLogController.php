@@ -23,6 +23,17 @@ class AuditLogController extends Controller
             $query->where( 'user_id', $request->user_id );
         }
 
+        // Scope logs by the cabang of the user who performed each action.
+        // A kasir is locked to their own cabang; an owner may optionally
+        // narrow to one cabang via ?branch_id=.
+        $user = $request->user();
+        if ( $user->role === 'kasir' && $user->branch_id ) {
+            $query->whereHas( 'user', fn ( $q ) => $q->where( 'branch_id', $user->branch_id ) );
+        } elseif ( $user->role === 'owner' && $request->filled( 'branch_id' ) ) {
+            $branchId = $request->branch_id;
+            $query->whereHas( 'user', fn ( $q ) => $q->where( 'branch_id', $branchId ) );
+        }
+
         $logs = $query->paginate( 50 );
 
         return response()->json( $logs );
