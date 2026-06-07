@@ -27,3 +27,4 @@ public/.htaccess
 public/setup.php
 public/storage/
 storage/app/public/
+config/filesystems.php
