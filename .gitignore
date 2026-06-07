@@ -24,3 +24,6 @@ Homestead.yaml
 Thumbs.db
 .htaccess
 public/.htaccess
+public/setup.php
+public/storage/
+storage/app/public/
