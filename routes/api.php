@@ -7,6 +7,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\UserController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -41,4 +42,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/branches', [BranchController::class, 'store']);
     Route::put('/branches/{branch}', [BranchController::class, 'update']);
     Route::delete('/branches/{branch}', [BranchController::class, 'destroy']);
+
+    // Kelola User — owner mengelola akun kasir. Tanpa DELETE: "hapus" = nonaktifkan
+    // (is_active=false) karena orders.user_id cascade akan menghapus transaksi.
+    Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
 });

@@ -16,11 +16,16 @@ class User extends Authenticatable {
         'password',
         'role',
         'branch_id',
+        'is_active',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     public function branch() {

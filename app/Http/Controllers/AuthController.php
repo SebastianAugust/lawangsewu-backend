@@ -25,6 +25,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if (!$user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Akun nonaktif. Hubungi owner.'],
+            ]);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $user->load('branch');
