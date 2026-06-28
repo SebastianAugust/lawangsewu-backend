@@ -25,7 +25,10 @@ class AuthController extends Controller
             ]);
         }
 
-        if (!$user->is_active) {
+        // Block only accounts explicitly deactivated. If the is_active column
+        // hasn't been migrated yet (value null), login still works — this keeps
+        // a code-before-migration deploy from locking everyone out.
+        if ($user->is_active === false) {
             throw ValidationException::withMessages([
                 'email' => ['Akun nonaktif. Hubungi owner.'],
             ]);

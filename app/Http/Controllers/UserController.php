@@ -85,18 +85,26 @@ class UserController extends Controller {
         }
 
         DB::transaction( function () use ( $user, $data ) {
-            // Rename the cabang and/or keep its active state in sync with the akun.
-            if ( $user->branch ) {
-                $branchData = [];
-                if ( array_key_exists( 'branch_name', $data ) ) {
-                    $branchData['name'] = $data['branch_name'];
-                }
-                if ( array_key_exists( 'is_active', $data ) ) {
-                    $branchData['is_active'] = $data['is_active'];
-                }
-                if ( $branchData ) {
+            if ( array_key_exists( 'branch_name', $data ) ) {
+                if ( $user->branch ) {
+                    // Rename the existing cabang (+ keep active state in sync).
+                    $branchData = [ 'name' => $data['branch_name'] ];
+                    if ( array_key_exists( 'is_active', $data ) ) {
+                        $branchData['is_active'] = $data['is_active'];
+                    }
                     $user->branch->update( $branchData );
+                } else {
+                    // Legacy/akun lama dengan branch_id null (mis. data production
+                    // yang dibuat sebelum sistem cabang) — buat cabang baru & assign.
+                    $branch = Branch::create( [
+                        'name' => $data['branch_name'],
+                        'is_active' => $data['is_active'] ?? true,
+                    ] );
+                    $data['branch_id'] = $branch->id;
                 }
+            } elseif ( array_key_exists( 'is_active', $data ) && $user->branch ) {
+                // Toggle aktif tanpa rename → sinkronkan status cabang.
+                $user->branch->update( [ 'is_active' => $data['is_active'] ] );
             }
 
             unset( $data['branch_name'] );

@@ -126,6 +126,33 @@ class UserManagementTest extends TestCase
         ])->assertStatus(200)->assertJsonStructure(['token', 'user']);
     }
 
+    public function test_editing_kasir_without_branch_creates_and_assigns_one(): void
+    {
+        Sanctum::actingAs($this->owner());
+
+        // Mirrors production data: a kasir created before the cabang system,
+        // so branch_id is null.
+        $kasir = User::create([
+            'name' => 'Kasir Lama',
+            'email' => 'lama@test.com',
+            'password' => Hash::make('rahasia123'),
+            'role' => 'kasir',
+            'branch_id' => null,
+        ]);
+
+        $this->putJson("/api/users/{$kasir->id}", [
+            'branch_name' => 'Cabang Baru',
+        ])->assertStatus(200)
+            ->assertJsonPath('branch.name', 'Cabang Baru');
+
+        $branch = Branch::where('name', 'Cabang Baru')->first();
+        $this->assertNotNull($branch);
+        $this->assertDatabaseHas('users', [
+            'id' => $kasir->id,
+            'branch_id' => $branch->id,
+        ]);
+    }
+
     public function test_owner_can_deactivate_kasir(): void
     {
         Sanctum::actingAs($this->owner());
