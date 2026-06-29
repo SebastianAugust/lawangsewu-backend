@@ -17,12 +17,15 @@ class SendDailyRecapCommand extends Command
     public function handle(ReportService $reports, FonnteService $fonnte): int
     {
         $date  = $this->option('date') ?: now()->toDateString();
-        $phone = $this->option('phone') ?: config('services.fonnte.owner_phone');
+        $phonesRaw = $this->option('phone') ?: config('services.fonnte.owner_phone');
 
-        if (empty($phone)) {
+        if (empty($phonesRaw)) {
             $this->error('FONNTE_OWNER_PHONE tidak diset di .env');
             return self::FAILURE;
         }
+
+        // Support multiple nomor dipisah koma
+        $phones = array_filter(array_map('trim', explode(',', $phonesRaw)));
 
         $report    = $reports->aggregate($date, $date);
         $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
@@ -30,11 +33,19 @@ class SendDailyRecapCommand extends Command
 
         $message = $this->buildMessage($date, $report, $prev);
 
-        $this->info("Mengirim rekap {$date} ke {$phone}...");
-        $ok = $fonnte->send($phone, $message);
+        $allOk = true;
+        foreach ($phones as $phone) {
+            $this->info("Mengirim rekap {$date} ke {$phone}...");
+            $ok = $fonnte->send($phone, $message);
+            if (!$ok) {
+                $this->error("Gagal mengirim ke {$phone}");
+                $allOk = false;
+            } else {
+                $this->info("Terkirim ke {$phone}.");
+            }
+        }
 
-        if (! $ok) {
-            $this->error('Gagal mengirim rekap (cek storage/logs/laravel.log)');
+        if (!$allOk) {
             return self::FAILURE;
         }
 

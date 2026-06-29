@@ -171,6 +171,38 @@ class ReportService
         $variantBreakdown = array_values($variantMap);
         usort($variantBreakdown, fn ($a, $b) => $b['total_qty'] <=> $a['total_qty']);
 
+        // Rekap per varian: dikelompokkan berdasarkan variant_name lintas menu
+        // (mis. semua "Paha" dari menu apa pun), dengan breakdown kontribusi
+        // tiap menu. Item tanpa varian (variant_name null/kosong) dikecualikan.
+        $variantSummaryMap = [];
+        foreach ($variantRows as $r) {
+            $vname = $r->variant_name;
+            if ($vname === null || $vname === '') {
+                continue;
+            }
+            if (! isset($variantSummaryMap[$vname])) {
+                $variantSummaryMap[$vname] = [
+                    'variant_name'  => $vname,
+                    'total_sold'    => 0,
+                    'total_revenue' => 0,
+                    'breakdown'     => [],
+                ];
+            }
+            $variantSummaryMap[$vname]['total_sold']    += (int) $r->qty;
+            $variantSummaryMap[$vname]['total_revenue'] += (int) $r->revenue;
+            $variantSummaryMap[$vname]['breakdown'][] = [
+                'menu_name' => $menuLookup->get($r->menu_id)?->name ?? 'Tanpa Nama',
+                'sold'      => (int) $r->qty,
+                'revenue'   => (int) $r->revenue,
+            ];
+        }
+        foreach ($variantSummaryMap as &$v) {
+            usort($v['breakdown'], fn ($a, $b) => $b['sold'] <=> $a['sold']);
+        }
+        unset($v);
+        $variantSummary = array_values($variantSummaryMap);
+        usort($variantSummary, fn ($a, $b) => $b['total_sold'] <=> $a['total_sold']);
+
         return [
             'period_start'      => $from,
             'period_end'        => $to,
@@ -188,6 +220,7 @@ class ReportService
             'menu_sales'        => $menuSales,
             'top_menus'         => $menuSales->take(10)->values(),
             'variant_breakdown' => $variantBreakdown,
+            'variant_summary'   => $variantSummary,
         ];
     }
 
