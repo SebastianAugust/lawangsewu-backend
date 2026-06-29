@@ -43,9 +43,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/branches/{branch}', [BranchController::class, 'update']);
     Route::delete('/branches/{branch}', [BranchController::class, 'destroy']);
 
-    // Kelola User — owner mengelola akun kasir. Tanpa DELETE: "hapus" = nonaktifkan
-    // (is_active=false) karena orders.user_id cascade akan menghapus transaksi.
+    // Kelola User — owner mengelola akun kasir. Selain nonaktif (is_active=false),
+    // cabang+kasir juga bisa dihapus permanen; orders.user_id/branch_id nullOnDelete
+    // jadi riwayat transaksi tetap aman (hanya jadi tidak terikat).
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
 });

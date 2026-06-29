@@ -153,6 +153,67 @@ class UserManagementTest extends TestCase
         ]);
     }
 
+    public function test_owner_can_delete_cabang_and_kasir(): void
+    {
+        Sanctum::actingAs($this->owner());
+        $branch = $this->branch();
+        $kasir = User::create([
+            'name' => 'Kasir',
+            'email' => 'kasir@test.com',
+            'password' => Hash::make('rahasia123'),
+            'role' => 'kasir',
+            'branch_id' => $branch->id,
+            'is_active' => true,
+        ]);
+
+        $this->deleteJson("/api/users/{$kasir->id}")
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('users', ['id' => $kasir->id]);
+        $this->assertDatabaseMissing('branches', ['id' => $branch->id]);
+    }
+
+    public function test_deleting_kasir_keeps_orders_but_unlinks_them(): void
+    {
+        Sanctum::actingAs($this->owner());
+        $branch = $this->branch();
+        $kasir = User::create([
+            'name' => 'Kasir',
+            'email' => 'kasir@test.com',
+            'password' => Hash::make('rahasia123'),
+            'role' => 'kasir',
+            'branch_id' => $branch->id,
+            'is_active' => true,
+        ]);
+
+        $order = \App\Models\Order::create([
+            'user_id' => $kasir->id,
+            'branch_id' => $branch->id,
+            'total_price' => 50000,
+        ]);
+
+        $this->deleteJson("/api/users/{$kasir->id}")
+            ->assertStatus(200);
+
+        // Transaksi tetap ada, hanya tidak lagi terikat ke kasir/cabang.
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'user_id' => null,
+            'branch_id' => null,
+        ]);
+    }
+
+    public function test_owner_cannot_delete_owner_account(): void
+    {
+        $owner = $this->owner();
+        Sanctum::actingAs($owner);
+
+        $this->deleteJson("/api/users/{$owner->id}")
+            ->assertStatus(403);
+
+        $this->assertDatabaseHas('users', ['id' => $owner->id]);
+    }
+
     public function test_owner_can_deactivate_kasir(): void
     {
         Sanctum::actingAs($this->owner());

@@ -123,6 +123,39 @@ class UserController extends Controller {
         return response()->json( $user );
     }
 
+    public function destroy( Request $request, User $user ) {
+        $this->ensureOwner( $request );
+
+        // Hanya akun kasir yang boleh dihapus lewat endpoint ini.
+        abort_if( $user->role !== 'kasir', 403, 'Hanya akun kasir yang dapat dihapus.' );
+
+        // Snapshot untuk audit log sebelum record-nya hilang.
+        $snapshot = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'branch_id' => $user->branch_id,
+        ];
+
+        DB::transaction( function () use ( $user ) {
+            $branch = $user->branch;
+
+            // orders.user_id & orders.branch_id keduanya nullOnDelete, jadi
+            // riwayat transaksi tetap tersimpan — hanya jadi tidak terikat
+            // ke cabang/kasir ini.
+            $user->delete();
+            $branch?->delete();
+        } );
+
+        AuditLog::record( $request->user()->id, 'delete_user', 'User', $snapshot['id'], [
+            'name' => $snapshot['name'],
+            'email' => $snapshot['email'],
+            'branch_id' => $snapshot['branch_id'],
+        ] );
+
+        return response()->json( [ 'message' => 'Cabang & akun kasir dihapus' ] );
+    }
+
     private function ensureOwner( Request $request ): void {
         abort_if( $request->user()->role !== 'owner', 403, 'Hanya owner yang dapat mengelola pengguna.' );
     }
