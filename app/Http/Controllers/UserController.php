@@ -32,6 +32,7 @@ class UserController extends Controller {
         $data = $request->validate( [
             'branch_name' => 'required|string|max:255',
             'name' => 'required|string|max:255',
+            'username' => 'required|string|min:3|max:255|regex:/^[a-zA-Z0-9_]+$/|unique:users,username',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
         ] );
@@ -44,6 +45,7 @@ class UserController extends Controller {
 
             return User::create( [
                 'name' => $data['name'],
+                'username' => $data['username'],
                 'email' => $data['email'],
                 'password' => Hash::make( $data['password'] ),
                 'role' => 'kasir',
@@ -72,6 +74,7 @@ class UserController extends Controller {
         $data = $request->validate( [
             'branch_name' => 'sometimes|required|string|max:255',
             'name' => 'sometimes|required|string|max:255',
+            'username' => [ 'sometimes', 'required', 'string', 'min:3', 'max:255', 'regex:/^[a-zA-Z0-9_]+$/', Rule::unique( 'users', 'username' )->ignore( $user->id ) ],
             'email' => [ 'sometimes', 'required', 'email', 'max:255', Rule::unique( 'users', 'email' )->ignore( $user->id ) ],
             'password' => 'nullable|string|min:6',
             'is_active' => 'sometimes|boolean',
