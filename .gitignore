@@ -15,7 +15,13 @@
 /node_modules
 /public/build
 /public/hot
-/public/storage
+# Keep the public/storage folder structure in the repo (so fresh deploys have
+# the upload target dirs) but never commit the uploaded files themselves.
+/public/storage/*
+!/public/storage/.gitkeep
+!/public/storage/menus/
+/public/storage/menus/*
+!/public/storage/menus/.gitkeep
 /storage/*.key
 /storage/pail
 /vendor
@@ -23,6 +29,4 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 public/setup.php
-public/storage/
 storage/app/public/
-config/filesystems.php
