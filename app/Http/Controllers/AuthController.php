@@ -39,7 +39,7 @@ class AuthController extends Controller
         $user->load('branch');
 
         AuditLog::record($user->id, 'login', 'User', $user->id, [
-            'email' => $user->email,
+            'username' => $user->username,
             'role' => $user->role,
         ]);
 

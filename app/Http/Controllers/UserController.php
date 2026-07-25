@@ -33,7 +33,6 @@ class UserController extends Controller {
             'branch_name' => 'required|string|max:255',
             'name' => 'required|string|max:255',
             'username' => 'required|string|min:3|max:255|regex:/^[a-zA-Z0-9_]+$/|unique:users,username',
-            'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
         ] );
 
@@ -46,7 +45,6 @@ class UserController extends Controller {
             return User::create( [
                 'name' => $data['name'],
                 'username' => $data['username'],
-                'email' => $data['email'],
                 'password' => Hash::make( $data['password'] ),
                 'role' => 'kasir',
                 'branch_id' => $branch->id,
@@ -56,7 +54,7 @@ class UserController extends Controller {
 
         AuditLog::record( $request->user()->id, 'create_user', 'User', $user->id, [
             'name' => $user->name,
-            'email' => $user->email,
+            'username' => $user->username,
             'branch_id' => $user->branch_id,
         ] );
 
@@ -75,7 +73,6 @@ class UserController extends Controller {
             'branch_name' => 'sometimes|required|string|max:255',
             'name' => 'sometimes|required|string|max:255',
             'username' => [ 'sometimes', 'required', 'string', 'min:3', 'max:255', 'regex:/^[a-zA-Z0-9_]+$/', Rule::unique( 'users', 'username' )->ignore( $user->id ) ],
-            'email' => [ 'sometimes', 'required', 'email', 'max:255', Rule::unique( 'users', 'email' )->ignore( $user->id ) ],
             'password' => 'nullable|string|min:6',
             'is_active' => 'sometimes|boolean',
         ] );
@@ -116,7 +113,7 @@ class UserController extends Controller {
 
         AuditLog::record( $request->user()->id, 'update_user', 'User', $user->id, [
             'name' => $user->name,
-            'email' => $user->email,
+            'username' => $user->username,
             'branch_id' => $user->branch_id,
             'is_active' => $user->is_active,
         ] );
@@ -136,7 +133,7 @@ class UserController extends Controller {
         $snapshot = [
             'id' => $user->id,
             'name' => $user->name,
-            'email' => $user->email,
+            'username' => $user->username,
             'branch_id' => $user->branch_id,
         ];
 
@@ -152,7 +149,7 @@ class UserController extends Controller {
 
         AuditLog::record( $request->user()->id, 'delete_user', 'User', $snapshot['id'], [
             'name' => $snapshot['name'],
-            'email' => $snapshot['email'],
+            'username' => $snapshot['username'],
             'branch_id' => $snapshot['branch_id'],
         ] );
 

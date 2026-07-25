@@ -11,6 +11,7 @@ class UserSeeder extends Seeder {
         // Owner is not tied to a branch — branch_id null means "lihat semua cabang".
         User::create( [
             'name' => 'Owner',
+            'username' => 'owner',
             'email' => 'owner@lawangsewu.com',
             'password' => Hash::make( 'password123' ),
             'role' => 'owner',
@@ -21,6 +22,7 @@ class UserSeeder extends Seeder {
         // (branch 1 = Pusat, branch 2 = Cabang 2).
         User::create( [
             'name' => 'Kasir',
+            'username' => 'kasir',
             'email' => 'kasir@lawangsewu.com',
             'password' => Hash::make( 'password123' ),
             'role' => 'kasir',
@@ -29,6 +31,7 @@ class UserSeeder extends Seeder {
 
         User::create( [
             'name' => 'Kasir Cabang 2',
+            'username' => 'kasir2',
             'email' => 'kasir2@lawangsewu.com',
             'password' => Hash::make( 'password123' ),
             'role' => 'kasir',

@@ -17,7 +17,7 @@ class UserManagementTest extends TestCase
     {
         return User::create([
             'name' => 'Owner',
-            'email' => 'owner@test.com',
+            'username' => 'owner',
             'password' => Hash::make('secret123'),
             'role' => 'owner',
             'branch_id' => null,
@@ -40,7 +40,7 @@ class UserManagementTest extends TestCase
         $res = $this->postJson('/api/users', [
             'branch_name' => 'Cabang Pandanaran',
             'name' => 'Budi',
-            'email' => 'budi@test.com',
+            'username' => 'budi',
             'password' => 'rahasia123',
         ]);
 
@@ -49,7 +49,7 @@ class UserManagementTest extends TestCase
 
         $branch = Branch::where('name', 'Cabang Pandanaran')->first();
         $this->assertDatabaseHas('users', [
-            'email' => 'budi@test.com',
+            'username' => 'budi',
             'role' => 'kasir',
             'branch_id' => $branch->id,
             'is_active' => true,
@@ -63,14 +63,14 @@ class UserManagementTest extends TestCase
         $this->postJson('/api/users', [
             'branch_name' => 'Cabang A',
             'name' => 'Budi',
-            'email' => 'budi@test.com',
+            'username' => 'budi',
             'password' => 'rahasia123',
         ])->assertStatus(201);
 
         $this->postJson('/api/users', [
             'branch_name' => 'Cabang B',
             'name' => 'Siti',
-            'email' => 'siti@test.com',
+            'username' => 'siti',
             'password' => 'rahasia123',
         ])->assertStatus(201);
 
@@ -85,7 +85,7 @@ class UserManagementTest extends TestCase
         $branch = $this->branch();
         $kasir = User::create([
             'name' => 'Kasir',
-            'email' => 'kasir@test.com',
+            'username' => 'kasir',
             'password' => Hash::make('rahasia123'),
             'role' => 'kasir',
             'branch_id' => $branch->id,
@@ -95,7 +95,7 @@ class UserManagementTest extends TestCase
         $this->getJson('/api/users')->assertStatus(403);
         $this->postJson('/api/users', [
             'name' => 'X',
-            'email' => 'x@test.com',
+            'username' => 'x_kasir',
             'password' => 'rahasia123',
             'branch_id' => $branch->id,
         ])->assertStatus(403);
@@ -106,7 +106,7 @@ class UserManagementTest extends TestCase
         $branch = $this->branch();
         $kasir = User::create([
             'name' => 'Kasir',
-            'email' => 'kasir@test.com',
+            'username' => 'kasir',
             'password' => Hash::make('rahasia123'),
             'role' => 'kasir',
             'branch_id' => $branch->id,
@@ -114,14 +114,14 @@ class UserManagementTest extends TestCase
         ]);
 
         $this->postJson('/api/login', [
-            'email' => 'kasir@test.com',
+            'username' => 'kasir',
             'password' => 'rahasia123',
-        ])->assertStatus(422)->assertJsonValidationErrors('email');
+        ])->assertStatus(422)->assertJsonValidationErrors('username');
 
         $kasir->update(['is_active' => true]);
 
         $this->postJson('/api/login', [
-            'email' => 'kasir@test.com',
+            'username' => 'kasir',
             'password' => 'rahasia123',
         ])->assertStatus(200)->assertJsonStructure(['token', 'user']);
     }
@@ -134,7 +134,7 @@ class UserManagementTest extends TestCase
         // so branch_id is null.
         $kasir = User::create([
             'name' => 'Kasir Lama',
-            'email' => 'lama@test.com',
+            'username' => 'kasir_lama',
             'password' => Hash::make('rahasia123'),
             'role' => 'kasir',
             'branch_id' => null,
@@ -159,7 +159,7 @@ class UserManagementTest extends TestCase
         $branch = $this->branch();
         $kasir = User::create([
             'name' => 'Kasir',
-            'email' => 'kasir@test.com',
+            'username' => 'kasir_hapus',
             'password' => Hash::make('rahasia123'),
             'role' => 'kasir',
             'branch_id' => $branch->id,
@@ -179,7 +179,7 @@ class UserManagementTest extends TestCase
         $branch = $this->branch();
         $kasir = User::create([
             'name' => 'Kasir',
-            'email' => 'kasir@test.com',
+            'username' => 'kasir_order',
             'password' => Hash::make('rahasia123'),
             'role' => 'kasir',
             'branch_id' => $branch->id,
@@ -220,7 +220,7 @@ class UserManagementTest extends TestCase
         $branch = $this->branch();
         $kasir = User::create([
             'name' => 'Kasir',
-            'email' => 'kasir@test.com',
+            'username' => 'kasir_nonaktif',
             'password' => Hash::make('rahasia123'),
             'role' => 'kasir',
             'branch_id' => $branch->id,
@@ -233,6 +233,113 @@ class UserManagementTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $kasir->id,
             'is_active' => false,
+        ]);
+    }
+
+    public function test_duplicate_username_is_rejected(): void
+    {
+        Sanctum::actingAs($this->owner());
+
+        $this->postJson('/api/users', [
+            'branch_name' => 'Cabang A',
+            'name' => 'Budi',
+            'username' => 'budi',
+            'password' => 'rahasia123',
+        ])->assertStatus(201);
+
+        $this->postJson('/api/users', [
+            'branch_name' => 'Cabang B',
+            'name' => 'Siti',
+            'username' => 'budi',
+            'password' => 'rahasia123',
+        ])->assertStatus(422)->assertJsonValidationErrors('username');
+    }
+
+    public function test_kasir_can_be_created_without_email(): void
+    {
+        Sanctum::actingAs($this->owner());
+
+        $this->postJson('/api/users', [
+            'branch_name' => 'Cabang Tanpa Email',
+            'name' => 'Budi',
+            'username' => 'budi',
+            'password' => 'rahasia123',
+        ])->assertStatus(201);
+
+        $kasir = User::where('username', 'budi')->first();
+        $this->assertNotNull($kasir);
+        $this->assertNull($kasir->email);
+
+        // Akun hasil pembuatan tanpa email tetap bisa login.
+        $this->postJson('/api/login', [
+            'username' => 'budi',
+            'password' => 'rahasia123',
+        ])->assertStatus(200)->assertJsonStructure(['token', 'user']);
+    }
+
+    /**
+     * Form edit di frontend selalu mengirim `username`, termasuk saat owner
+     * hanya mengganti nama cabang. Tanpa `->ignore($user->id)` pada aturan
+     * unique, setiap penyimpanan akan ditolak karena username-nya sendiri
+     * dianggap duplikat — fitur edit mati total.
+     */
+    public function test_updating_kasir_with_its_own_username_is_allowed(): void
+    {
+        Sanctum::actingAs($this->owner());
+        $branch = $this->branch();
+        $kasir = User::create([
+            'name' => 'Kasir',
+            'username' => 'kasir_tetap',
+            'password' => Hash::make('rahasia123'),
+            'role' => 'kasir',
+            'branch_id' => $branch->id,
+            'is_active' => true,
+        ]);
+
+        $this->putJson("/api/users/{$kasir->id}", [
+            'branch_name' => 'Cabang Ganti Nama',
+            'name' => 'Kasir',
+            'username' => 'kasir_tetap',
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $kasir->id,
+            'username' => 'kasir_tetap',
+        ]);
+        $this->assertDatabaseHas('branches', [
+            'id' => $branch->id,
+            'name' => 'Cabang Ganti Nama',
+        ]);
+    }
+
+    public function test_updating_kasir_to_another_users_username_is_rejected(): void
+    {
+        Sanctum::actingAs($this->owner());
+
+        $this->postJson('/api/users', [
+            'branch_name' => 'Cabang A',
+            'name' => 'Budi',
+            'username' => 'budi',
+            'password' => 'rahasia123',
+        ])->assertStatus(201);
+
+        $this->postJson('/api/users', [
+            'branch_name' => 'Cabang B',
+            'name' => 'Siti',
+            'username' => 'siti',
+            'password' => 'rahasia123',
+        ])->assertStatus(201);
+
+        $siti = User::where('username', 'siti')->first();
+
+        $this->putJson("/api/users/{$siti->id}", [
+            'username' => 'budi',
+        ])->assertStatus(422)->assertJsonValidationErrors('username');
+
+        // Username Siti tidak berubah setelah penolakan.
+        $this->assertDatabaseHas('users', [
+            'id' => $siti->id,
+            'username' => 'siti',
         ]);
     }
 }
