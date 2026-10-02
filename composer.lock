@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cec3456c94ac23bc2d33ee6910104be3",
+    "content-hash": "6fdcbcc04ba7c301c01535f4d83d7c43",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -7196,6 +7196,38 @@
             "time": "2026-04-27T13:38:34+00:00"
         },
         {
+            "name": "mjgapp/larascan",
+            "version": "v0.5.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/marcelg7/larascan.git",
+                "reference": "1483c14d02315962baa4a91129fc27e39601c653"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/marcelg7/larascan/zipball/1483c14d02315962baa4a91129fc27e39601c653",
+                "reference": "1483c14d02315962baa4a91129fc27e39601c653",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.1"
+            },
+            "bin": [
+                "bin/larascan"
+            ],
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "description": "Dependency-free Laravel static analysis scanner with auto-fix, baseline, and SARIF output.",
+            "support": {
+                "issues": "https://github.com/marcelg7/larascan/issues",
+                "source": "https://github.com/marcelg7/larascan/tree/v0.5.4"
+            },
+            "time": "2026-04-26T22:38:30+00:00"
+        },
+        {
             "name": "mockery/mockery",
             "version": "1.6.12",
             "source": {
@@ -9183,5 +9215,5 @@
         "php": "^8.2"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
